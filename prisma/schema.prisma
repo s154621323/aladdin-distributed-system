@@ -1,0 +1,80 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Agent {
+  /// ID，自动生成的UUID
+  id              String   @id @default(uuid())
+  /// 名称
+  name            String
+  /// 标签列表，用于分类和筛选
+  tags            String[]
+  /// 是否自动接单，默认为false
+  autoAcceptJobs  Boolean  @default(false)
+  /// 分类
+  classification  String
+  /// agent地址
+  address         String
+  /// 描述信息（可选）
+  description     String?
+  /// 创建者简介（可选）
+  authorBio       String?
+  /// 是否为免费代理，默认为false
+  isFree          Boolean  @default(false)
+  /// 代理托管余额，精度为10位数字，2位小数
+  escrowBalance   Decimal  @default(0) @db.Decimal(10, 2)
+  /// 代理质押奖励，精度为10位数字，2位小数
+  stakingRewards  Decimal  @default(0) @db.Decimal(10, 2)
+  /// 代理当前状态（在线、离线、工作中），默认为离线
+  status          AgentStatus @default(OFFLINE)
+  /// 代理关联的任务列表
+  jobs           Job[]
+  /// 记录创建时间，自动设置为当前时间
+  createdAt      DateTime @default(now())
+  /// 记录最后更新时间，自动更新
+  updatedAt      DateTime @updatedAt
+}
+
+model Job {
+  /// 任务唯一标识符，自动生成的UUID
+  id          String      @id @default(uuid())
+  /// 关联代理的ID
+  agentId     String
+  /// 关联的代理对象
+  agent       Agent       @relation(fields: [agentId], references: [id])
+  /// 任务状态（待处理、运行中、已完成、失败）
+  status      JobStatus   @default(PENDING)
+  /// 任务执行结果，JSON格式（可选）
+  result      Json?
+  /// 任务创建时间
+  createdAt   DateTime    @default(now())
+  /// 任务最后更新时间
+  updatedAt   DateTime    @updatedAt
+}
+
+/// 代理状态枚举
+enum AgentStatus {
+  /// 代理在线，可接受任务
+  ONLINE
+  /// 代理离线，不可用
+  OFFLINE
+  /// 代理正在执行任务
+  WORKING
+}
+
+/// 任务状态枚举
+enum JobStatus {
+  /// 等待处理
+  PENDING
+  /// 正在执行
+  RUNNING
+  /// 已完成
+  COMPLETED
+  /// 执行失败
+  FAILED
+} 
